@@ -1,0 +1,335 @@
+---
+title: "Barriers and perceptions"
+author: "Dennis van Soest"
+output: 
+  html_document: 
+    self_contained: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(scales)
+library(RColorBrewer)
+data <- read.csv(file="//its-rds/2017/tightmr-transport-walking/Data_analysis2.csv", header=TRUE, sep=",")
+
+```
+
+##Hierarchical Clustering (data-driven)
+
+Based on the attitudes (walking, cycling, driving, bus, train).
+
+```{r echo=F}
+dataset <- data[complete.cases(data[,c("Attit_walk", "Attit_Bus", "Attit_Train", "Attit_cycle", "Attit_car")]),]
+clusters <- hclust(dist(dataset[,c("Attit_walk", "Attit_Bus", "Attit_Train", "Attit_cycle", "Attit_car")]), method="ward.D")
+plot(clusters)
+```
+
+
+##Explore clusters
+Characteristics of the three clusters.
+
+```{r echo=F, warning=F, fig.width=5}
+dataset$cluster <- as.factor(cutree(clusters, 4))
+
+ggplot(dataset, aes(x=cluster, y=Attit_walk)) +
+  geom_boxplot() +
+  labs(title="Walk attitude", y = "Attitude")
+
+ggplot(dataset, aes(x=cluster, y=Attit_Bus)) +
+  geom_boxplot() +
+  labs(title="Bus attitude", y = "Attitude")
+
+ggplot(dataset, aes(x=cluster, y=Attit_Train)) +
+  geom_boxplot() +
+  labs(title="Train attitude", y = "Attitude")
+
+ggplot(dataset, aes(x=cluster, y=Attit_car)) +
+  geom_boxplot() +
+  labs(title="Car attitude", y = "Attitude")
+
+ggplot(dataset, aes(x=cluster, y=Attit_cycle)) +
+  geom_boxplot() +
+  labs(title="Cycling attitude", y = "Attitude")
+```
+
+##Barriers
+
+```{r barrier plot preparation, echo=FALSE}
+walk_barriers <- c("Bar_walk1","Bar_walk2","Bar_walk3","Bar_walk4","Bar_walk5",
+                   "Bar_walk6","Bar_walk7","Bar_walk8","Bar_walk9", "Bar_walk10", "Bar_walk11")
+bus_barriers <- c("Bar_bus1","Bar_bus2","Bar_bus3","Bar_bus4","Bar_bus5",
+                  "Bar_bus6","Bar_bus7","Bar_bus8","Bar_bus9")
+train_barriers <- c("Bar_train1","Bar_train2","Bar_train3","Bar_train4","Bar_train5",
+                    "Bar_train6","Bar_train7","Bar_train8","Bar_train9")
+
+descriptions_walk <- c("Walking takes too much time",
+                  "I do not feel safe in traffic",
+                  "I feel unsafe at night",
+                  "I feel unsafe during the day",
+                  "The walking routes are unpleasant",
+                  "The pavements are bad",
+                  "I am often too tired to walk",
+                  "I am too lazy to walk",
+                  "I won't walk when it is raining",
+                  "I won't walk when I need to carry some luggage",
+                  "I'd like to have more places to rest")
+descriptions_bus <- c("The distance to the bus stop is too far",
+                      "Travelling by bus takes too much time for my trips",
+                      "I do not feel safe on buses",
+                      "I won't take the bus if I need to carry some luggage",
+                      "Buses are often too crowded for me",
+                      "Buses are too expensive",
+                      "The bus system is too complicated",
+                      "I don't like the other people on the bus",
+                      "I suffer from travel sickness on the bus")
+descriptions_train <- c("The distance to the train station is too far",
+                      "Travelling by train takes too much time for my trips",
+                      "I do not feel safe on trains and at stations",
+                      "I won't take the train if I need to carry some luggage",
+                      "Trains are often too crowded for me",
+                      "Trains are too expensive",
+                      "The railway system is too complicated",
+                      "I don't like the other people on the train",
+                      "I suffer from travel sickness on the train")
+clusters <- c("1", "2", "3", "4")
+
+barrier_plots <- function(mode){
+  barriers <- get(paste0(mode,"_barriers"))
+  descriptions <- get(paste0("descriptions_", mode))
+  for(i in 1:length(barriers)){
+    plotdata <- na.omit(dataset[,c("cluster",barriers[[i]])])
+    
+    Agree_mat <- matrix(data=NA, nrow = 4*7, ncol = 3)
+    colnames(Agree_mat) <- c("Cluster", "Rating", "Frequency")
+    Rating <- c("Strongly disagree", "Disagree", "Somewhat disagree", "Neutral", "Somewhat agree", "Agree", "Strongly agree")
+    for(n in 1:length(clusters)){
+      for(r in 1:length(Rating)){
+        Agree_mat[(n-1)*7+r,1]<- clusters[n]
+        Agree_mat[(n-1)*7+r,2]<- Rating[r]
+        Agree_mat[(n-1)*7+r,3]<- sum(plotdata[plotdata$cluster==clusters[n],2]==r)
+      }
+    } 
+    Agree_mat.df <- as.data.frame(Agree_mat)
+    Agree_mat.df$Frequency <- as.numeric(as.character(Agree_mat.df$Frequency))
+    Agree_mat.df$Rating <- factor(Agree_mat.df$Rating, Rating)
+    Agree_mat.df$Cluster <- as.factor(Agree_mat.df$Cluster)
+    
+    description <- paste0("Agreement with ",barriers[[i]])
+    barchart <- ggplot(Agree_mat.df, aes(x=Cluster, y=Frequency, fill=Rating)) +
+      geom_bar(position="fill", stat="identity", width = 0.5, col = "#424242") +
+      scale_y_continuous(labels = percent_format()) +
+      theme_grey() +
+      coord_flip() +
+      labs(y="Level of agreement", title=descriptions[[i]]) +
+      #scale_x_discrete(limits = positions, labels=labels) + #order levels
+      scale_fill_manual(values=brewer.pal(7, "Blues")) +
+      guides(fill = guide_legend(keyheight = 0.5))
+    print(barchart)
+  }
+}
+```
+
+###Barriers to walking
+
+```{r walk barrier plots, fig.height=3, fig.width=7, echo=FALSE}
+barrier_plots("walk")
+```
+
+###Barriers to bus use
+
+```{r bus barrier plots, fig.height=3, fig.width=7, echo=FALSE}
+barrier_plots("bus")
+```
+
+###Barriers to train use
+
+```{r train barrier plots, fig.height=3, fig.width=7, echo=FALSE}
+barrier_plots("train")
+```
+
+##Socio-demographic characteristics of the four clusters
+
+Clusters per neighbourhood
+
+```{r, echo=FALSE}
+ggplot(dataset, aes(x=cluster, fill=Neighbourhood)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  theme(legend.position="bottom")+
+  theme(legend.position="bottom",legend.title = element_text(size = 14) ,legend.text = element_text(size = 14))
+
+ggplot(dataset, aes(x=Neighbourhood, fill=cluster)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  theme(legend.position="bottom",legend.title = element_text(size = 14) ,legend.text = element_text(size = 14))
+```
+
+Gender
+
+```{r, echo=FALSE}
+ggplot(na.omit(dataset[,c("cluster","Gender")]), aes(x=cluster, fill=as.factor(Gender))) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(name="Gender", values=c("grey", "#00aeff", "#ff78eb"), labels=c("Not say", "Male", "Female"))
+```
+
+Age
+
+```{r, echo=FALSE}
+dataset$Year_birth[dataset$Year_birth==0] <- NA
+
+ggplot(na.omit(dataset[,c("cluster","Year_birth")]), aes(x=Year_birth, fill=cluster)) +
+  geom_density(alpha=0.4) + 
+  labs(x="Year of birth")
+```
+
+Household size
+
+```{r household size, echo=FALSE}
+dataset$HH_size[dataset$HH_size==0] <- NA
+dataset$HH_size <- as.factor(dataset$HH_size)
+ggplot(na.omit(dataset[,c("cluster","HH_size")]), aes(x=cluster, fill=HH_size)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values=brewer.pal(7, "Blues"), name="Household size", 
+                    labels=c("1 person", "2 people", "3 people", "4 people", "5 people", "6 people", "7 or more people"))
+```
+
+Children 
+
+```{r household children, echo=FALSE}
+dataset$HH_u12[dataset$HH_u12==9] <- NA
+dataset$HH_u12 <- as.factor(dataset$HH_u12)
+ggplot(na.omit(dataset[,c("cluster","HH_u12")]), aes(x=cluster, fill=HH_u12)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values=brewer.pal(4, "Blues"), name="Number of children in household", 
+                    labels=c("None", "1 child", "2 children", "3 or more children"))
+```
+
+Income
+
+```{r income, echo=FALSE}
+dataset$Income[dataset$Income==0] <- NA
+
+dataset$Income <- factor(dataset$Income, labels=c("< £15k","£15-25k","£25-50k","> £50k"))
+ggplot(na.omit(dataset[,c("cluster","Income")]), aes(x=cluster, fill=Income)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values=brewer.pal(4, "Blues"), name="Annual household income")
+```
+
+Ethnicity
+
+```{r ethnicity, echo=FALSE}
+dataset$Ethnicity[dataset$Ethnicity==0] <- NA
+dataset$Ethnicity <- factor(dataset$Ethnicity, labels = c("Asian/Asian British","Black/African/Caribbean/Black British",
+                                           "Mixed/multiple ethnic group","White","Other ethnic group"))
+ggplot(na.omit(dataset[,c("cluster","Ethnicity")]), aes(x=cluster, fill=Ethnicity)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values=brewer.pal(5, "Set1"))
+```
+
+Work status
+
+```{r work status, echo=FALSE}
+dataset$Work_status[dataset$Work_status==0] <- NA
+
+dataset$Work_status <- factor(dataset$Work_status, labels=c("Employed full time", "Employed part time", "Student", "Retired", "Unemployed"))
+ggplot(na.omit(dataset[,c("cluster","Work_status")]), aes(x=cluster, fill=Work_status)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values=brewer.pal(5, "Set1"), name="Work status")
+```
+
+##Travel characteristics of the three clusters
+
+Use of walking
+
+```{r, echo=FALSE}
+ggplot(na.omit(dataset[,c("cluster","Use_walk")]), aes(x=cluster, fill=as.factor(Use_walk))) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values=brewer.pal(5, "Blues"), name="Walk frequency", 
+                    labels=c("Never", "<1 day per week", "1 or 2 days per week", "3 to 5 days per week", "6 or 7 days per week"))
+```
+
+Use of car as a driver
+
+```{r, echo=FALSE}
+ggplot(na.omit(dataset[,c("cluster","Use_drive")]), aes(x=cluster, fill=as.factor(Use_drive))) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values=brewer.pal(5, "Blues"), name="Driving frequency", 
+                    labels=c("Never", "<1 day per week", "1 or 2 days per week", "3 to 5 days per week", "6 or 7 days per week"))
+```
+
+Use of car as a passenger
+
+```{r, echo=FALSE}
+ggplot(na.omit(dataset[,c("cluster","Use_pass")]), aes(x=cluster, fill=as.factor(Use_pass))) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values=brewer.pal(5, "Blues"), name="Car passenger frequency", 
+                    labels=c("Never", "<1 day per week", "1 or 2 days per week", "3 to 5 days per week", "6 or 7 days per week"))
+```
+
+Use of train
+
+```{r, echo=FALSE}
+ggplot(na.omit(dataset[,c("cluster","Use_train")]), aes(x=cluster, fill=as.factor(Use_train))) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values=brewer.pal(5, "Blues"), name="Train use frequency", 
+                    labels=c("Never", "<1 day per week", "1 or 2 days per week", "3 to 5 days per week", "6 or 7 days per week"))
+```
+
+Use of bus
+
+```{r, echo=FALSE}
+ggplot(na.omit(dataset[,c("cluster","Use_bus")]), aes(x=cluster, fill=as.factor(Use_bus))) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values=brewer.pal(5, "Blues"), name="Bus use frequency", 
+                    labels=c("Never", "<1 day per week", "1 or 2 days per week", "3 to 5 days per week", "6 or 7 days per week"))
+```
+
+Use of bicycle
+
+```{r, echo=FALSE}
+ggplot(na.omit(dataset[,c("cluster","Use_cycling")]), aes(x=cluster, fill=as.factor(Use_cycling))) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values=brewer.pal(5, "Blues"), name="Cycling frequency", 
+                    labels=c("Never", "<1 day per week", "1 or 2 days per week", "3 to 5 days per week", "6 or 7 days per week"))
+```
+
+Use of taxi
+
+```{r, echo=FALSE}
+ggplot(na.omit(dataset[,c("cluster","Use_taxi")]), aes(x=cluster, fill=as.factor(Use_taxi))) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values=brewer.pal(5, "Blues"), name="Taxi use frequency", 
+                    labels=c("Never", "<1 day per week", "1 or 2 days per week", "3 to 5 days per week", "6 or 7 days per week"))
+```
+
+
+##Associations
+
+```{r}
+as_data <- read.csv(file="//its-rds/2017/tightmr-transport-walking/AssociationData/AssociationData3_csv.csv", header=TRUE, sep=",")
+names(dataset)[1] <- "Respondent"
+com_data <- merge(x=as_data, y=dataset, by="Respondent")
+com_data$Code <- as.factor(com_data$Code)
+com_data$cluster <- as.factor(com_data$cluster)
+modes <- list("walk", "car", "train", "cycle", "bus")
+
+source("C:/Users/dxv632/OneDrive - University of Birmingham/_PhD/_Parts/Questionnaire/AssociationAnalysis/Analysis_function_moonplot.R")
+
+analysis_moon(v="cluster")
+```
+
+
