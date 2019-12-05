@@ -1,13 +1,14 @@
-#PhD Codes
+# PhD Codes
+R-codes used for the analyses in my PhD project.
 
-##Chapter 3
+## Chapter 3
 * PT convenience score
 	- ConvenienceBus.R - Compute convenience scores based on bus stops
 	- ConvenienceTrain.R - Compute convenience scores based on railway stations and PT in general
 * Attitude clustering
 	- Attitudes_segmentation.Rmd - Create and explore attitudinal clusters
 
-##Chapter 4
+## Chapter 4
 * Affect_Regression.R
 	- Logistic regression models for the affective rating of free associations
 * Analysis_function.R
@@ -21,7 +22,7 @@
 * Predef_Barriers_Corrplot.R
 	- Correlation plot for all predefined barrier ratings
 
-##Chapter 5
+## Chapter 5
 * Interactive_mapping.R 
 	- Cleaning, plotting and editing the location data of each user on a map
 	- Uses functions:
