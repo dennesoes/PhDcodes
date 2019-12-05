@@ -8,7 +8,7 @@ library(geosphere)
 
 car_trips <- read.csv("Z:/Trackdata/cartrips/_cartrips.csv")
 
-bing_key="AjfOQljg6KD_8GK0APYjfrSJAwz_T2QntYr7z5tp-H0tKWDkhEQMJBOPj0Mr_f4j"  #Use of Bing Maps API
+bing_key="xxx"  #Use of Bing Maps API
 root <- "http://dev.virtualearth.net/REST/v1/Routes?"
 
 # Create matrix with car routes -------------------------------------------
